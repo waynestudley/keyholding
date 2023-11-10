@@ -27,7 +27,6 @@ const Home: NextPage = () => {
   const parkingRef = useRef("");
 
   const handleFromDestinationChange = (e) => {
-    console.log(data);
     const selectedFrom = e.target.value;
     setFromDestination(selectedFrom);
 
@@ -78,7 +77,6 @@ const Home: NextPage = () => {
         );
         const response = await apiInstance.get();
         setCosts(response.data);
-        console.log(response.data.currency, response.data);
       } catch (error) {
         setError(error);
         setCosts([]);
@@ -89,7 +87,6 @@ const Home: NextPage = () => {
   };
 
   const getDestinationCosts = (e) => {
-    console.log(data[fromDestination].code, data[toDestination].code);
     const fetchData = async () => {
       try {
         const apiInstance = apiBuilder(
@@ -97,7 +94,6 @@ const Home: NextPage = () => {
         );
         const response = await apiInstance.get();
         setDestinationCosts(response.data);
-        console.log(response.data.currency, response.data);
       } catch (error) {
         setError(error);
         setCosts([]);
