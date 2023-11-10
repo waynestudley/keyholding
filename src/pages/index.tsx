@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NextPage } from "next";
 import {
   Box,
@@ -13,28 +13,29 @@ import {
   MenuItem,
 } from "@mui/material";
 import { apiBuilder } from "../utils/api";
-import "@fontsource/roboto/300.css";
-import "@fontsource/roboto/400.css";
-import "@fontsource/roboto/500.css";
-import "@fontsource/roboto/700.css";
 
 const Home: NextPage = () => {
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
   const [fromDestination, setFromDestination] = useState("");
   const [toDestination, setToDestination] = useState("");
+  const [costs, setCosts] = useState([]);
+  const [destinationCosts, setDestinationCosts] = useState([]);
+  // Ref variables for each text input - no need to update the v-dom with every keystroke...
+  const distanceRef = useRef("");
+  const passengersRef = useRef("");
+  const parkingRef = useRef("");
 
   const handleFromDestinationChange = (e) => {
+    console.log(data);
     const selectedFrom = e.target.value;
     setFromDestination(selectedFrom);
 
-    // Reset 'to' destination if it's the same as the new 'from'
     if (toDestination === selectedFrom) {
       setToDestination("");
     }
   };
 
-  // Event handler for when the 'to' destination changes
   const handleToDestinationChange = (e) => {
     setToDestination(e.target.value);
   };
@@ -45,48 +46,69 @@ const Home: NextPage = () => {
       try {
         const apiInstance = apiBuilder("gates/");
         const response = await apiInstance.get("/");
+        // Sort retrieved data alphabetically
         const sortedData = response.data.sort(
-          (a: { name: string; }, b: { name: any; }) => a.name.localeCompare(b.name) // Sort alphabetically
+          (a: { name: string }, b: { name: any }) =>
+            a.name.localeCompare(b.name)
         );
-        setData(sortedData); // Store the data in state
+        setData(sortedData);
       } catch (error) {
-        setError(error); // Store the error in state
+        setError(error);
       }
     };
 
     fetchData();
-  }, []); // The empty array means this effect runs once on mount
+  }, []); // run once on mount
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const handleChange = (e) => {
-    console.log(e.target.value)
-  }
-   
-      
+  const getCosts = (e) => {
+    e.preventDefault();
+
+    // Access the input values from the refs
+    const distance = distanceRef.current.value;
+    const passengers = passengersRef.current.value;
+    const parking = parkingRef.current.value;
+
+    const fetchData = async () => {
+      try {
+        const apiInstance = apiBuilder(
+          `transport/${distance}?passengers=${passengers}&parking=${parking}`
+        );
+        const response = await apiInstance.get();
+        setCosts(response.data);
+        console.log(response.data.currency, response.data);
+      } catch (error) {
+        setError(error);
+        setCosts([]);
+      }
+    };
+
+    fetchData();
+  };
+
+  const getDestinationCosts = (e) => {
+    console.log(data[fromDestination].code, data[toDestination].code);
+    const fetchData = async () => {
+      try {
+        const apiInstance = apiBuilder(
+          `gates/${data[fromDestination].code}/to/${data[toDestination].code}`
+        );
+        const response = await apiInstance.get();
+        setDestinationCosts(response.data);
+        console.log(response.data.currency, response.data);
+      } catch (error) {
+        setError(error);
+        setCosts([]);
+      }
+    };
+
+    fetchData();
+  };
 
   return (
     <Box padding={isMobile ? 2 : 4}>
-      <Button
-        variant="outlined"
-        href="https://nextjs.org/docs"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        NextJS Docs
-      </Button>
-      <Button variant="outlined" href="journey" rel="noopener noreferrer">
-        Redux Toolkit Docs
-      </Button>
-      <Button
-        variant="outlined"
-        href="https://github.com/salnika/next-boilerplate"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        GitHub Repo
-      </Button>
       <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
         <Typography variant="h4">Star Seeker</Typography>
       </Box>
@@ -96,23 +118,53 @@ const Home: NextPage = () => {
       <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
         <Typography variant="subtitle1" gutterBottom>
           Distance
-          <TextField id="standard-basic" label="(lu's)" variant="standard" />
+          <TextField
+            id="starDistance"
+            label="(lu's)"
+            variant="standard"
+            inputRef={distanceRef}
+          />
         </Typography>
         <Typography variant="subtitle1" gutterBottom>
           Passengers
-          <TextField id="standard-basic" label="(number)" variant="standard" />
+          <TextField
+            id="starPassengers"
+            label="(number)"
+            variant="standard"
+            inputRef={passengersRef}
+          />
         </Typography>
         <Typography variant="subtitle1" gutterBottom>
           Parking
-          <TextField id="standard-basic" label="(days)" variant="standard" />
+          <TextField
+            id="starParking"
+            label="(days)"
+            variant="standard"
+            inputRef={parkingRef}
+          />
         </Typography>
       </Box>
 
       <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
-        <Button variant="outlined" href="journey" rel="noopener noreferrer">
+        <Button variant="outlined" onClick={getCosts} rel="noopener noreferrer">
           Get costs
         </Button>
       </Box>
+      <br />
+      <br />
+      {costs.currency && (
+        <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
+          <Typography variant="subtitle1" gutterBottom>
+            {`${costs.currency} ${(
+              costs.journeyCost + costs.parkingFee
+            ).toFixed(2)} - (${costs.currency} ${costs.journeyCost.toFixed(
+              2
+            )} travel & ${costs.currency} ${costs.parkingFee.toFixed(
+              2
+            )} parking)`}
+          </Typography>
+        </Box>
+      )}
 
       <br />
       <hr />
@@ -124,8 +176,7 @@ const Home: NextPage = () => {
             value={fromDestination}
             onChange={handleFromDestinationChange}
             labelId="destFrom"
-            id="demo-simple-select-standard"
-            onChange={handleChange}
+            id="destFrom"
             label="From"
           >
             {data?.map((item, index) => (
@@ -139,21 +190,51 @@ const Home: NextPage = () => {
         <FormControl variant="standard" sx={{ m: 1, width: "45%" }}>
           <InputLabel id="demo-simple-select-standard-label">To</InputLabel>
           <Select
-            value={fromDestination}
+            value={toDestination}
             onChange={handleToDestinationChange}
             labelId="destTo"
-            id="demo-simple-select-standard"
-            onChange={handleChange}
-            label="From"
+            id="destTo"
+            label="To"
           >
-            {data?.map((item, index) => (
-              <MenuItem key={index} value={index}>
-                {item.name}
-              </MenuItem>
-            ))}
+            {data?.map((item, index) => {
+              // Check if the current index is not the selected index from the first dropdown
+              if (index !== fromDestination) {
+                return (
+                  <MenuItem key={index} value={index}>
+                    {item.name}
+                  </MenuItem>
+                );
+              }
+              return null;
+            })}
           </Select>
         </FormControl>
       </Box>
+      <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
+        <Button
+          variant="outlined"
+          onClick={getDestinationCosts}
+          rel="noopener noreferrer"
+        >
+          Get to/from destination costs
+        </Button>
+      </Box>
+
+      <br />
+      <br />
+      {destinationCosts.from && (
+        <Box display="flex" flexDirection={isMobile ? "column" : "row"} gap={2}>
+          <Typography variant="subtitle1" gutterBottom>
+            {`From ${destinationCosts.from.name} to ${destinationCosts.to.name}`}
+            <br />
+            {`Cost: ${destinationCosts.totalCost}`}
+            <br />
+            {destinationCosts.route.length > 1
+              ? `Route: ${destinationCosts.route}`
+              : "Direct"}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };
