@@ -1,6 +1,8 @@
-# Next boiler - with TS
+# WS Next boiler - with TS
 
-A simple NextJS boilerplate with Axios. 
+A simple NextJS boilerplate with Axios.
+
+Added Material UI as there's little styling (the global.css is generic)
 
 ## Features
 

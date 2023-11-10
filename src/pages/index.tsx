@@ -95,7 +95,7 @@ const Home: NextPage = () => {
         const response = await apiInstance.get();
         setDestinationCosts(response.data);
       } catch (error) {
-        setError(error);
+        setError(error as any);
         setCosts([]);
       }
     };
@@ -193,7 +193,7 @@ const Home: NextPage = () => {
             label="To"
           >
             {data?.map((item, index) => {
-              // Check if the current index is not the selected index from the first dropdown
+              // Remove the 'To' from the 'From' comboboxes
               if (index !== fromDestination) {
                 return (
                   <MenuItem key={index} value={index}>
